@@ -11,8 +11,8 @@ from boxmot.utils import WEIGHTS, logger as LOGGER
 from boxmot.appearance.exporters.base_exporter import BaseExporter
 from boxmot.appearance.exporters.torchscript_exporter import TorchScriptExporter
 from boxmot.appearance.exporters.onnx_exporter import ONNXExporter
-from boxmot.appearance.exporters.openvino_exporter import OpenVINOExporter
-from boxmot.appearance.exporters.tflite_exporter import TFLiteExporter
+# from boxmot.appearance.exporters.openvino_exporter import OpenVINOExporter
+# from boxmot.appearance.exporters.tflite_exporter import TFLiteExporter
 from boxmot.appearance.exporters.tensorrt_exporter import EngineExporter
 
 def parse_args():
@@ -28,6 +28,7 @@ def parse_args():
     parser.add_argument("--verbose", action="store_true", help="TensorRT: verbose log")
     parser.add_argument("--weights", type=Path, default=WEIGHTS / "osnet_x0_25_msmt17.pt", help="model.pt path(s)")
     parser.add_argument("--half", action="store_true", help="FP16 half-precision export")
+    parser.add_argument("--trt-fp16", action="store_true", help="TensorRT: build FP16 engine (separate from --half model conversion)")
     parser.add_argument("--include", nargs="+", default=["torchscript"], help="torchscript, onnx, openvino, engine")
     return parser.parse_args()
 
@@ -78,17 +79,25 @@ def main():
         exporter = TorchScriptExporter(model, im, args.weights, args.optimize)
         f[0] = exporter.export()
     if engine:
-        exporter = EngineExporter(model, im, args.weights, args.half, args.dynamic, args.simplify, args.verbose)
+        exporter = EngineExporter(
+            model,
+            im,
+            args.weights,
+            dynamic=args.dynamic,
+            half=args.half,
+            simplify=args.simplify,
+            trt_fp16=args.trt_fp16,
+        )
         f[1] = exporter.export()
     if onnx:
         exporter = ONNXExporter(model, im, args.weights, args.opset, args.dynamic, args.half, args.simplify)
         f[2] = exporter.export()
-    if tflite:
-        exporter = TFLiteExporter(model, im, args.weights)
-        exporter.export()
-    if openvino:
-        exporter = OpenVINOExporter(model, im, args.weights, args.half)
-        f[3] = exporter.export()
+    # if tflite:
+    #     exporter = TFLiteExporter(model, im, args.weights)
+    #     exporter.export()
+    # if openvino:
+    #     exporter = OpenVINOExporter(model, im, args.weights, args.half)
+    #     f[3] = exporter.export()
 
     f = [str(x) for x in f if x]
     if any(f):

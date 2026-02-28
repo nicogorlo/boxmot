@@ -6,8 +6,8 @@ from boxmot.utils import logger as LOGGER
 
 
 class EngineExporter(BaseExporter):
-    required_packages = ("nvidia-tensorrt",)
-    cmds = '--extra-index-url https://pypi.ngc.nvidia.com'
+    required_packages = ()
+    cmds = ''
     
     def export(self):
 
@@ -63,8 +63,10 @@ class EngineExporter(BaseExporter):
                 )
             config.add_optimization_profile(profile)
 
-        LOGGER.info(f"Building FP{16 if builder.platform_has_fast_fp16 and self.half else 32} engine in {f}")
-        if builder.platform_has_fast_fp16 and self.half:
+        # Use trt_fp16 for builder flag (separate from half which affects model dtype)
+        use_fp16 = self.trt_fp16 or self.half
+        LOGGER.info(f"Building FP{16 if builder.platform_has_fast_fp16 and use_fp16 else 32} engine in {f}")
+        if builder.platform_has_fast_fp16 and use_fp16:
             config.set_flag(trt.BuilderFlag.FP16)
             config.default_device_type = trt.DeviceType.GPU
 
